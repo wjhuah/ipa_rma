@@ -1,71 +1,44 @@
-# multipa
-MultIPA is yet another automatic speech transcription model into phonetic IPA.
-The idea is that, if we train a multilingual speech-to-IPA model with enough amount of good phoneme representations, the model's output will be approximated to phonetic transcriptions.
-Please check out the [Paper](https://arxiv.org/abs/2308.03917) for details.
+# IPA ASR Benchmark for Rma (Qiang) Language
 
-(Updated Feb 28, 2025): We are planning to add more data and refine the model. Please let us know if you are interested in working together to make it better!
+This repository presents benchmark results on phoneme-level automatic speech recognition (ASR) and error correction for the endangered Rma language, based on the study "Language Model-Based Error Correction in Endangered Language Documentation".
 
-## Available training languages
-At this moment, we have the following languages incorporated available in the training data:
-- Finnish
-- Hungarian
-- Japanese
-- Maltese
-- Modern Greek
-- Polish
-- Tamil
+## Experimental Overview
 
-We aim to include more languages to take into account linguistic diversity.
+We evaluate six ASR models and two language model-based error correction methods for IPA transcription.
 
-## How to run
-First, run `pip install -r requirements.txt` for required packages if you need.
+### ASR Systems
 
-You need to convert the transcription in the CommonVoice dataset into IPA before training a model.
-To do so, run `preprocess.py`; for example,
-```
-python preprocess.py \
-       -l ja pl mt hu fi el ta \
-       --num_proc 48
-```
+| ASR System        | Model Origin                     | Setting                           | PER ↓ | CER ↓ |
+|-------------------|----------------------------------|-----------------------------------|-------|-------|
+| Wav2Vec (v1.0)    | Facebook (Schneider et al., 2019) | Frozen encoder + linear decoder   | 0.91  | 0.79  |
+| Wav2Vec 2.0       | Meta (Baevski et al., 2020)       | Fine-tuned on Rma IPA             | 0.71  | 0.62  |
+| Whisper (base)    | OpenAI (Radford et al., 2022)     | Multilingual zero-shot            | 0.86  | 0.75  |
+| MMS               | Meta (Pratap et al., 2023)        | Fine-tuned on Rma                 | 0.68  | 0.59  |
+| UAPT (zero-shot)  | Taguchi et al., 2023              | Unadapted                         | 1.00  | 0.88  |
+| UAPT (fine-tuned) | Taguchi et al., 2023              | Fine-tuned on Rma IPA             | 0.58  | 0.52  |
 
-Then, run `main.py` to train a model.
-For example:
-```
-python3 main.py \
-        -l ja pl mt hu fi el ta \
-        -tr 1000 1000 1000 1000 1000 1000 1000 \
-        -te 200 200 200 200 200 200 200 \
-        -qf False False False False False False False \
-        -a True \
-        -s "japlmthufielta-nq-ns" \
-        -ns True \
-        -v vocab.json \
-        -e 10
-```
-for training with 7 languages, 1000 training samples and 200 validation samples for each, where audio samples with bad quality are not filtered out, additional data from Forvo are included, the suffix for the output model folder name is `japlmthufielta-nq-ns`, orthographic spaces are removed, the name of the vocab file is `vocab.json`, and the number of epochs is set to 10.
+### Post-ASR Correction (GER)
 
-## Model
-You can run the model (trained on 1k samples for each language, 9h in total) [here](https://huggingface.co/ctaguchi/wav2vec2-large-xlsr-japlmthufielta-ipa1000-ns).
+| Language Model | Type        | Parameters | Fine-tuned | PER ↓ | Δ PER |
+|----------------|-------------|------------|------------|--------|--------|
+| Qwen-7B        | Generative  | 7B         | Yes        | 0.48   | -0.10  |
+| Qwen-0.5B      | Generative  | 0.5B       | Yes        | 0.62   | +0.04  |
+| No Correction  | –           | –          | –          | 0.58   | –      |
 
-## Notes
-- If you are using AFS, `preprocess.py` might cause `OS Error: File too large` due to reaching the limit of the number of files that a directory can accommodate.
-- Additional data from Forvo themselves are not uploaded in this repository.
-- The full list of IPA symbols was obtained from the [Panphon](https://github.com/dmort27/panphon) library.
+*PER = Phoneme Error Rate; CER = Character Error Rate.*
+
+## Project Components
+
+This repository includes:
+
+- Wav2Vec2 fine-tuning scripts (`finetune_wav2vec2.py`)
+- Inference interfaces for Whisper and MMS
+- UAPT inference and adaptation utilities
+- Generative error correction modules
+- ELAN file preprocessing utility (`elan_split.py`)
 
 ## Citation
-Chihiro Taguchi, Yusuke Sakai, Parisa Haghani, David Chiang. "Universal Automatic Phonetic Transcription into the International Phonetic Alphabet". INTERSPEECH 2023.\
-For the time being, you may cite our arXiv paper:
-```
-@misc{taguchi2023universal,
-      title={Universal Automatic Phonetic Transcription into the International Phonetic Alphabet}, 
-      author={Chihiro Taguchi and Yusuke Sakai and Parisa Haghani and David Chiang},
-      year={2023},
-      eprint={2308.03917},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL}
-}
-```
+N / A
 
-## Contact
-Feel free to raise issues if you find any bugs.
-Also, feel free to contact me `ctaguchi at nd.edu` for collaboration.
+If you use this repository or find the results useful, please cite:
+
